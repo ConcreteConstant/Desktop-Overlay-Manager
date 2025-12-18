@@ -91,18 +91,23 @@ class OverlayManager:
         # reset timer if needed
         self._reset_timer()
 
-    # -------- Live config setters --------
+    # ======================
+    # LIVE CONFIG SETTERS
+    # ======================
 
+    # -------- Opacity --------
     def set_opacity(self, value: float):
         self.config["opacity"] = value
         for overlay in self.overlays:
             overlay.setWindowOpacity(value)
 
-    def set_interactive(self, enabled: bool):
-        self.config["interactive"] = enabled
+    # -------- Is Interactive --------
+    def set_interactive(self, is_iteractive: bool):
+        self.config["interactive"] = is_iteractive
         for overlay in self.overlays:
-            overlay.set_interactive(enabled)
+            overlay.set_interactive(is_iteractive)
 
+    # -------- Spawn Interval --------
     def set_spawn_interval(self, min_ms: int, max_ms: int):
         if min_ms > max_ms:
             return  # guardrail
@@ -111,8 +116,84 @@ class OverlayManager:
         self.config["spawn"]["interval_max_ms"] = max_ms
         self._reset_timer()
 
+    # -------- Spawn Chance --------
     def set_spawn_chance(self, chance: float):
         self.config["spawn"]["chance"] = max(0.0, min(1.0, chance))
 
+    # -------- Enable Media --------
     def set_media_enabled(self, media_type: str, enabled: bool):
         self.config["media"][media_type]["enabled"] = enabled
+
+    # -------- Audio Volume --------
+    def set_audio_volume(self, value: float):
+        value = max(0.0, min(1.0, value))
+        self.config["audio_volume"] = value
+
+        for overlay in self.overlays:
+            if overlay.media_type == "audio" and overlay.player:
+                overlay.player.audioOutput().setVolume(value)
+
+    # -------- Video Volume --------
+    def set_video_volume(self, value: float):
+        value = max(0.0, min(1.0, value))
+        self.config["video_volume"] = value
+
+        for overlay in self.overlays:
+            if overlay.media_type == "video" and overlay.player:
+                overlay.player.audioOutput().setVolume(value)
+    
+    # -------- Media Weights --------
+    def set_media_weight(self, media_type: str, value: float):
+        value = max(0.0, value)
+        self.config["media"][media_type]["weight"] = value
+
+    # -------- Media Lifetime --------
+    def set_media_lifetime(self, media_type: str, min_ms: int, max_ms: int):
+        if min_ms > max_ms:
+            return
+
+        config = self.config["media"][media_type]
+        config["lifetime_min"] = min_ms
+        config["lifetime_max"] = max_ms
+
+    # ======================
+    # EXPLICIT ACCESSORS PER CONCEPT
+    # ======================
+
+    def spawn_interval_accessors(self):
+        def get_min():
+            return self.config["spawn"]["interval_min_ms"]
+
+        def get_max():
+            return self.config["spawn"]["interval_max_ms"]
+
+        def set_min(v):
+            self.set_spawn_interval(v, get_max())
+
+        def set_max(v):
+            self.set_spawn_interval(get_min(), v)
+
+        return get_min, get_max, set_min, set_max
+
+    def scale_accessors(self):
+        return (
+            lambda: self.config["scale"]["min"],
+            lambda: self.config["scale"]["max"],
+            lambda v: self.set_scale_min(v),
+            lambda v: self.set_scale_max(v),
+        )
+
+    def media_lifetime_accessors(self, media_type: str):
+        def get_min():
+            return self.config["media"][media_type]["lifetime_min"]
+
+        def get_max():
+            return self.config["media"][media_type]["lifetime_max"]
+
+        def set_min(v):
+            self.set_media_lifetime(media_type, v, get_max())
+
+        def set_max(v):
+            self.set_media_lifetime(media_type, get_min(), v)
+
+        return get_min, get_max, set_min, set_max

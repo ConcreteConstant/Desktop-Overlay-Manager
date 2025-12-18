@@ -10,11 +10,12 @@ DEFAULT_CONFIG = {
     "size_lifetime_bias": 0.6,
     "audio_volume": 0.45,
     "video_volume": 0.30,
-
+    
     "spawn": {
         "interval_min_ms": 3000,
         "interval_max_ms": 7000,
         "chance": 0.8,
+        "screen_takeover_chance": 0.05,
     },
 
     "media": {
