@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (
     QCheckBox, QPushButton,
     QListWidget, QFileDialog
 )
+from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt, Signal
 from copy import deepcopy
 
@@ -170,14 +171,14 @@ class ControlPanel(QWidget):
         # -------- Apply/Close Buttons --------
         btn_row = QHBoxLayout()
         apply_btn = QPushButton("Apply")
-        close_btn = QPushButton("Close")
+        quit_btn = QPushButton("Quit")
 
         btn_row.addWidget(apply_btn)
-        btn_row.addWidget(close_btn)
+        btn_row.addWidget(quit_btn)
         layout.addLayout(btn_row)
 
         apply_btn.clicked.connect(self._apply_structural)
-        close_btn.clicked.connect(self.close)
+        quit_btn.clicked.connect(self._quit_app)
 
         # ======================
         # FEEDBACK
@@ -223,6 +224,13 @@ class ControlPanel(QWidget):
         self.working_config["media_folders"].remove(folder)
         self.folder_list.takeItem(self.folder_list.row(item))
         self._mark_dirty()
+
+    def _quit_app(self):
+        QApplication.instance().quit()
+
+    def closeEvent(self, event):
+        event.accept()
+        QApplication.instance().quit()
 
     # ======================
     # REUSABLE UI FUNCTIONS
@@ -292,8 +300,3 @@ class ControlPanel(QWidget):
         row.addWidget(max_box)
 
         return row
-
-    
-
-
-

@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from copy import deepcopy
 
-CONFIG_FILE = Path("config.json")
+CONFIG_FILE = Path(__file__).resolve().parent / "config.json"
 
 DEFAULT_CONFIG = {
     "opacity": 0.5,
@@ -91,3 +91,4 @@ def save_config(config):
     CONFIG_FILE.write_text(
         json.dumps(config, indent=4)
     )
+    print("Saving config to:", CONFIG_FILE.resolve())
