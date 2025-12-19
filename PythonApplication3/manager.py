@@ -156,6 +156,14 @@ class OverlayManager:
         config["lifetime_min"] = min_ms
         config["lifetime_max"] = max_ms
 
+    # -------- Scale --------
+    def set_scale_range(self, min_scale: float, max_scale: float):
+        if min_scale > max_scale:
+            return
+
+        self.config["scale"]["min"] = min_scale
+        self.config["scale"]["max"] = max_scale
+
     # ======================
     # EXPLICIT ACCESSORS PER CONCEPT
     # ======================
@@ -176,12 +184,19 @@ class OverlayManager:
         return get_min, get_max, set_min, set_max
 
     def scale_accessors(self):
-        return (
-            lambda: self.config["scale"]["min"],
-            lambda: self.config["scale"]["max"],
-            lambda v: self.set_scale_min(v),
-            lambda v: self.set_scale_max(v),
-        )
+        def get_min():
+            return self.config["scale"]["min"]
+
+        def get_max():
+            return self.config["scale"]["max"]
+
+        def set_min(v):
+            self.set_scale_range(v, get_max())
+
+        def set_max(v):
+            self.set_scale_range(get_min(), v)
+
+        return get_min, get_max, set_min, set_max
 
     def media_lifetime_accessors(self, media_type: str):
         def get_min():

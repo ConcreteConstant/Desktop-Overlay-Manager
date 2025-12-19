@@ -34,6 +34,25 @@ class ControlPanel(QWidget):
         self.opacity.valueChanged.connect(lambda v: self.manager.set_opacity(v / 100))
         layout.addWidget(self.opacity)
 
+        # -------- Scale --------
+        layout.addWidget(QLabel("Overlay Scale"))
+
+        get_min, get_max, set_min, set_max = self.manager.scale_accessors()
+
+        layout.addLayout(
+            self._range_spinboxes(
+                "Scale",
+                get_min,
+                get_max,
+                set_min,
+                set_max,
+                min_value=0.1,
+                max_value=5.0,
+                step=0.05,
+                decimals=2,
+            )
+        )
+
         # -------- Spawn Interval Control --------
         get_min, get_max, set_min, set_max = self.manager.spawn_interval_accessors()
 
