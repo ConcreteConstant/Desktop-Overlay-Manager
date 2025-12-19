@@ -42,10 +42,7 @@ class ControlPanel(QWidget):
         layout.addLayout(
             self._range_spinboxes(
                 "Scale",
-                get_min,
-                get_max,
-                set_min,
-                set_max,
+                get_min, get_max, set_min, set_max,
                 min_value=0.1,
                 max_value=5.0,
                 step=0.05,
@@ -67,13 +64,16 @@ class ControlPanel(QWidget):
         )
 
         # -------- Spawn Chance --------
-        layout.addWidget(QLabel("Spawn Chance"))
+        layout.addWidget(QLabel("Spawn Behavior"))
 
-        layout.addLayout(self._percent_slider_w_label("Spawn Chance",self.working_config["spawn"]["chance"],self.manager.set_spawn_chance))
+        layout.addLayout(self._percent_slider_w_label("Spawn Chance",self.manager.config["spawn"]["chance"],self.manager.set_spawn_chance))
 
-        # -------- Lifetime Control --------
+        # -------- Spawn Fullscreen Chance --------
+        layout.addLayout(self._percent_slider_w_label("Fullscreen Chance",self.manager.config["spawn"].get("fullscreen_chance", 0.0),self.manager.set_fullscreen_chance))
+
+        # -------- Lifetime Control (Random) --------
         for media in ("image", "audio", "video"):
-            get_min, get_max, set_min, set_max = self.manager.media_lifetime_accessors(media)
+            get_min, get_max, set_min, set_max = self.manager.media_lifetime_accessors(media, "random")
 
             layout.addLayout(
                 self._range_spinboxes(
@@ -85,11 +85,25 @@ class ControlPanel(QWidget):
                 )
             )
 
+        # -------- Lifetime Control (Fullscreen) (image & video only) --------
+        for media in ("image", "video"):
+            get_min, get_max, set_min, set_max = self.manager.media_lifetime_accessors(media, "fullscreen")
+
+            layout.addLayout(
+                self._range_spinboxes(
+                    f"{media.capitalize()} Fullscreen Lifetime (ms)",
+                    get_min, get_max, set_min, set_max,
+                    min_value=1000,
+                    max_value=60000,
+                    step=500,
+                )
+            )
+
         # -------- Volume Control --------
         layout.addWidget(QLabel("Volume"))
 
-        layout.addLayout(self._percent_slider_w_label("Audio",self.working_config["audio_volume"],self.manager.set_audio_volume))
-        layout.addLayout(self._percent_slider_w_label("Video",self.working_config["video_volume"],self.manager.set_video_volume))
+        layout.addLayout(self._percent_slider_w_label("Audio",self.manager.config["audio_volume"],self.manager.set_audio_volume))
+        layout.addLayout(self._percent_slider_w_label("Video",self.manager.config["video_volume"],self.manager.set_video_volume))
 
         # -------- Media Toggles --------
         layout.addWidget(QLabel("Allowed Media Types"))
@@ -118,17 +132,19 @@ class ControlPanel(QWidget):
 
         layout.addWidget(self.chk_interactive)
 
-        # ======================
-        # STRUCTURAL (APPLY-ONLY) - (working_config)
-        # ======================
-
         # -------- Media Weights --------
         layout.addWidget(QLabel("Media Weights"))
 
-        layout.addLayout(self._percent_slider_w_label("Image Weight",self.working_config["media"]["image"]["weight"],lambda v: self.manager.set_media_weight("image", v)))
-        layout.addLayout(self._percent_slider_w_label("Audio Weight",self.working_config["media"]["audio"]["weight"],lambda v: self.manager.set_media_weight("audio", v)))
-        layout.addLayout(self._percent_slider_w_label("Video Weight",self.working_config["media"]["video"]["weight"],lambda v: self.manager.set_media_weight("video", v)))
+        layout.addLayout(self._percent_slider_w_label("Image Weight",self.manager.config["media"]["image"]["weight"],lambda v: self.manager.set_media_weight("image", v)))
+        layout.addLayout(self._percent_slider_w_label("Audio Weight",self.manager.config["media"]["audio"]["weight"],lambda v: self.manager.set_media_weight("audio", v)))
+        layout.addLayout(self._percent_slider_w_label("Video Weight",self.manager.config["media"]["video"]["weight"],lambda v: self.manager.set_media_weight("video", v)))
 
+        # ======================
+        # STRUCTURAL (APPLY-ONLY) - (media_folder_draft) (working_config)
+        # ======================
+        # working_config is UI-only draft state.
+        # Only media folder changes are staged here.
+        # Most controls read/write live manager.config directly.
         # -------- Media Folders --------
         layout.addWidget(QLabel("Media Folders"))
 

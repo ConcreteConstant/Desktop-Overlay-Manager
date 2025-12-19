@@ -1,6 +1,7 @@
 ﻿# config.py
 import json
 from pathlib import Path
+from copy import deepcopy
 
 CONFIG_FILE = Path("config.json")
 
@@ -15,27 +16,52 @@ DEFAULT_CONFIG = {
         "interval_min_ms": 3000,
         "interval_max_ms": 7000,
         "chance": 0.8,
-        "screen_takeover_chance": 0.05,
+        "fullscreen_chance": 1,
     },
 
     "media": {
         "image": {
             "enabled": True,
             "weight": 0.5,
-            "lifetime_min": 8000,
-            "lifetime_max": 8000,
+
+            "lifetime": {
+                "random": {
+                    "min": 8000,
+                    "max": 8000,
+                },
+                "fullscreen": {
+                    "min": 2000,
+                    "max": 2000,
+                }
+            }
         },
+
         "audio": {
             "enabled": True,
             "weight": 0.25,
-            "lifetime_min": 6000,
-            "lifetime_max": 14000,
+
+            "lifetime": {
+                "random": {
+                    "min": 6000,
+                    "max": 14000,
+                }
+            }
         },
+
         "video": {
             "enabled": True,
             "weight": 0.25,
-            "lifetime_min": 6000,
-            "lifetime_max": 18000,
+
+            "lifetime": {
+                "random": {
+                    "min": 6000,
+                    "max": 18000,
+                },
+                "fullscreen": {
+                    "min": 2000,
+                    "max": 2000,
+                }
+            }
         },
     },
 
@@ -53,7 +79,7 @@ DEFAULT_CONFIG = {
 
 
 def load_config():
-    config = DEFAULT_CONFIG.copy()
+    config = deepcopy(DEFAULT_CONFIG)
 
     if CONFIG_FILE.exists():
         config.update(json.loads(CONFIG_FILE.read_text()))

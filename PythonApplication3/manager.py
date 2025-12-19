@@ -31,9 +31,14 @@ class OverlayManager:
         if random.random() > self.config["spawn"]["chance"]:
             return
 
-        self.spawn()
+         # Stage 2: presentation roll
+        presentation = "random"
+        if random.random() < self.config["spawn"]["fullscreen_chance"]:
+            presentation = "fullscreen"
 
-    def spawn(self):
+        self.spawn(presentation)
+
+    def spawn(self, presentation):
         allowed = []
 
         for t, cfg in self.config["media"].items():
@@ -47,17 +52,26 @@ class OverlayManager:
         if not path:
             return
 
-        overlay = MediaOverlay(path, media_type, self.config)
+        overlay = MediaOverlay(path, media_type, self.config, presentation=presentation)
+        overlay.setScreen(screen)
         overlay.closed.connect(self._on_closed)
 
         overlay.set_interactive(self.config["interactive"])
         overlay.setWindowOpacity(self.config["opacity"])
 
-        screen = random.choice(QGuiApplication.screens()).availableGeometry()
-        overlay.move(
-            random.randint(screen.x(), screen.right() - overlay.width()),
-            random.randint(screen.y(), screen.bottom() - overlay.height())
-        )
+        screen = random.choice(QGuiApplication.screens())
+        geo = screen.availableGeometry()
+
+        if presentation == "fullscreen":
+            overlay.move(
+                geo.center().x() - overlay.width() // 2,
+                geo.center().y() - overlay.height() // 2,
+            )
+        else:
+            overlay.move(
+                random.randint(geo.x(), geo.right() - overlay.width()),
+                random.randint(geo.y(), geo.bottom() - overlay.height())
+            )
 
         self.overlays.append(overlay)
         if media_type in self.active:
@@ -120,6 +134,10 @@ class OverlayManager:
     def set_spawn_chance(self, chance: float):
         self.config["spawn"]["chance"] = max(0.0, min(1.0, chance))
 
+    # -------- Spawn Fullscreen Chance --------
+    def set_fullscreen_chance(self, chance: float):
+        self.config["spawn"]["fullscreen_chance"] = max(0.0, min(1.0, chance))
+
     # -------- Enable Media --------
     def set_media_enabled(self, media_type: str, enabled: bool):
         self.config["media"][media_type]["enabled"] = enabled
@@ -148,13 +166,15 @@ class OverlayManager:
         self.config["media"][media_type]["weight"] = value
 
     # -------- Media Lifetime --------
-    def set_media_lifetime(self, media_type: str, min_ms: int, max_ms: int):
+    def set_media_lifetime(self, media_type: str, presentation: str, min_ms: int, max_ms: int):
         if min_ms > max_ms:
             return
 
-        config = self.config["media"][media_type]
-        config["lifetime_min"] = min_ms
-        config["lifetime_max"] = max_ms
+        lifetime = self.config["media"][media_type]["lifetime"]
+        lifetime_config = lifetime.get(presentation, lifetime["random"])
+
+        lifetime_config["min"] = min_ms
+        lifetime_config["max"] = max_ms
 
     # -------- Scale --------
     def set_scale_range(self, min_scale: float, max_scale: float):
@@ -198,17 +218,21 @@ class OverlayManager:
 
         return get_min, get_max, set_min, set_max
 
-    def media_lifetime_accessors(self, media_type: str):
+    def media_lifetime_accessors(self, media_type: str, presentation: str,):
+        def _cfg():
+            lifetime = self.config["media"][media_type]["lifetime"]
+            return lifetime.get(presentation, lifetime["random"])   #check presentation, if does not exist, return base lifetime["random"] lifetime
+
         def get_min():
-            return self.config["media"][media_type]["lifetime_min"]
+            return _cfg()["min"]
 
         def get_max():
-            return self.config["media"][media_type]["lifetime_max"]
+            return _cfg()["max"]
 
         def set_min(v):
-            self.set_media_lifetime(media_type, v, get_max())
+            self.set_media_lifetime(media_type, presentation, v, get_max())
 
         def set_max(v):
-            self.set_media_lifetime(media_type, get_min(), v)
+            self.set_media_lifetime(media_type, presentation, get_min(), v)
 
         return get_min, get_max, set_min, set_max

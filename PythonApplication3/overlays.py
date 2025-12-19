@@ -2,6 +2,7 @@
 import os
 import random
 
+from PySide6 import QtCore
 from PySide6.QtWidgets import QWidget, QLabel, QPushButton
 from PySide6.QtCore import Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QPixmap
@@ -69,20 +70,20 @@ class OverlayWidget(QWidget):
 class MediaOverlay(OverlayWidget):
     closed = Signal(object)
 
-    def __init__(self, path, media_type, config):
+    def __init__(self, path, media_type, config, *, presentation="random"):
         super().__init__(config)
 
         self.path = path
         self.media_type = media_type
         self.player = None
         self.config = config
+        self.presentation = presentation
 
         self.scale = random.uniform(config["scale"]["min"], config["scale"]["max"])
 
         self._close_btn = None
         self.setMouseTracking(True)
 
-        # self._init_window()
         self._build()
 
     def enterEvent(self, event):
@@ -94,6 +95,20 @@ class MediaOverlay(OverlayWidget):
         if self._close_btn:
             self._close_btn.hide()
         super().leaveEvent(event)
+
+    def _scale_to_screen(self, size):
+        screen = self.screen()
+        if not screen:
+            return size
+
+        screen_size = screen.availableGeometry().size()
+
+        ratio = min(
+            screen_size.width() / size.width(),
+            screen_size.height() / size.height()
+        )
+
+        return size * ratio
 
     def _add_close_button(self):
         self._close_btn = QPushButton("✕", self)
@@ -117,13 +132,25 @@ class MediaOverlay(OverlayWidget):
         self._close_btn.move(self.width() - self._close_btn.width() - 4, 4)
 
     def _start_timer(self):
-        cfg = self.config["media"][self.media_type]
-        min_ms = cfg["lifetime_min"]
-        max_ms = cfg["lifetime_max"]
+        media_config = self.config["media"][self.media_type]
+        lifetime_config = media_config["lifetime"]
+
+        mode = self.presentation
+
+        # Fallback: fullscreen → random
+        if mode not in lifetime_config:
+            mode = "random"
+
+        min_ms = lifetime_config[mode]["min"]
+        max_ms = lifetime_config[mode]["max"]
 
         lifetime = random.randint(min_ms, max_ms)
-        bias = 1 + (self.scale - 1) * self.config["size_lifetime_bias"]
-        QTimer.singleShot(max(1500, int(lifetime / bias)), self._safe_close)
+
+        if self.presentation == "random":
+            bias = 1 + (self.scale - 1) * self.config["size_lifetime_bias"]
+            lifetime = int(lifetime / bias)
+
+        QTimer.singleShot(max(1500, int(lifetime)), self._safe_close)
 
     def _safe_close(self):
         if self.player:
@@ -136,15 +163,18 @@ class MediaOverlay(OverlayWidget):
 
         if self.media_type == "image":
             label = QLabel(self)
-            pix = QPixmap(self.path).scaled(
-                int(500 * self.scale),
-                int(500 * self.scale),
-                Qt.KeepAspectRatio,
-                Qt.SmoothTransformation
-            )
+            pix = QPixmap(self.path)
+
+            base_size = pix.size() * self.scale
+
+            if self.presentation == "fullscreen":
+                base_size = self._scale_to_screen(base_size)
+
+            
+            pix = pix.scaled(base_size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+
             label.setPixmap(pix)
             self.resize(pix.size())
-            # self._start_timer(c["image_lifetime_ms"], c["image_lifetime_ms"])
 
         else:
             widget = (
@@ -152,9 +182,14 @@ class MediaOverlay(OverlayWidget):
                 if self.media_type == "video"
                 else QLabel(os.path.basename(self.path), self)
             )
+
+            base_size = QtCore.QSize(int(500 * self.scale),int(300 * self.scale))
             
-            widget.resize(int(500 * self.scale), int(300 * self.scale))
-            self.resize(widget.size())
+            if self.presentation == "fullscreen" and self.media_type == "video":
+                base_size = self._scale_to_screen(base_size)
+
+            widget.resize(base_size)
+            self.resize(base_size)
 
             self.player = QMediaPlayer(self)
             audio = QAudioOutput(self)
@@ -179,4 +214,3 @@ class MediaOverlay(OverlayWidget):
         self._position_close_button()
         self._start_timer()
         self.show()
-
