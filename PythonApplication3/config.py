@@ -2,8 +2,20 @@
 import json
 from pathlib import Path
 from copy import deepcopy
+import os
 
-CONFIG_FILE = Path(__file__).resolve().parent / "config.json"
+def get_config_path():
+    if os.name == "nt":
+        base = Path(os.getenv("APPDATA", Path.home()))
+    else:
+        base = Path.home() / ".config"
+
+    config_dir = base / "DesktopOverlayManager"
+    config_dir.mkdir(parents=True, exist_ok=True)
+
+    return config_dir / "config.json"
+
+CONFIG_FILE = get_config_path()
 
 DEFAULT_CONFIG = {
     "opacity": 0.5,
@@ -77,18 +89,18 @@ DEFAULT_CONFIG = {
 
 }
 
-
 def load_config():
     config = deepcopy(DEFAULT_CONFIG)
 
     if CONFIG_FILE.exists():
-        config.update(json.loads(CONFIG_FILE.read_text()))
+        loaded = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+        config.update(loaded)
 
     return config
 
 
 def save_config(config):
     CONFIG_FILE.write_text(
-        json.dumps(config, indent=4)
+        json.dumps(config, indent=4), encoding="utf-8"
     )
     print("Saving config to:", CONFIG_FILE.resolve())
