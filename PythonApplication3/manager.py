@@ -52,15 +52,15 @@ class OverlayManager:
         if not path:
             return
 
+        screen = random.choice(QGuiApplication.screens())
+        geo = screen.availableGeometry()
+
         overlay = MediaOverlay(path, media_type, self.config, presentation=presentation)
         overlay.setScreen(screen)
         overlay.closed.connect(self._on_closed)
 
         overlay.set_interactive(self.config["interactive"])
         overlay.setWindowOpacity(self.config["opacity"])
-
-        screen = random.choice(QGuiApplication.screens())
-        geo = screen.availableGeometry()
 
         if presentation == "fullscreen":
             overlay.move(
