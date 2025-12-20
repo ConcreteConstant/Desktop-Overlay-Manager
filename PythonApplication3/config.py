@@ -82,10 +82,7 @@ DEFAULT_CONFIG = {
         "max": 2.0,
     },
 
-    "media_folders": [
-        r"D:/zzz/2",
-        r"D:/zzz/3",
-    ]
+    "media_folders": []
 
 }
 
