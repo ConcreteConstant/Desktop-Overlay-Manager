@@ -3,13 +3,16 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-
 # PyInstaller
 build/
 dist/
 __pycache__/
 *.spec
 *.spec.bak
+
+# Godot
+.godot/
+.import/
 
 # User-specific files
 *.rsuser
@@ -373,3 +376,4 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
