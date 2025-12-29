@@ -13,6 +13,7 @@ class OverlayManager:
 
         self.overlays = []
         self.active = {"image":0, "audio": 0, "video": 0}
+        self._ui_queue = []
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._on_tick)
@@ -111,9 +112,15 @@ class OverlayManager:
 
     # -------- Opacity --------
     def set_opacity(self, value: float):
+        print("Setting opacity to", value)
         self.config["opacity"] = value
         for overlay in self.overlays:
             overlay.setWindowOpacity(value)
+        # def apply():
+        #     for overlay in self.overlays:
+        #         overlay.setWindowOpacity(value)
+
+        # self.run_on_ui_thread(apply)
 
     # -------- Is Interactive --------
     def set_interactive(self, is_iteractive: bool):
@@ -236,3 +243,10 @@ class OverlayManager:
             self.set_media_lifetime(media_type, presentation, get_min(), v)
 
         return get_min, get_max, set_min, set_max
+    
+    # ======================
+    # Helper to run on UI thread for live config changes
+    # ======================
+
+    def run_on_ui_thread(self, fn):
+        QTimer.singleShot(0, fn)
