@@ -22,6 +22,8 @@ class IPCServer:
                 conn, addr = s.accept()
                 print(f"[IPC] Connected from {addr}")
 
+                self._send(conn, {"cmd": "init_config","config": self.manager.config})
+
                 with conn:
                     file = conn.makefile("r")
                     for line in file:
