@@ -1,19 +1,23 @@
 # manager.py
 import random
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, QObject, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 from copy import deepcopy
 
 from overlays import MediaOverlay
 
-class OverlayManager:
+class OverlayManager(QObject):
+    run_on_ui = Signal(object)
+
     def __init__(self, config, media_library):
+        super().__init__()
+        
         self.config = config
         self.media = media_library
 
         self.overlays = []
         self.active = {"image":0, "audio": 0, "video": 0}
-        self._ui_queue = []
+        self.run_on_ui.connect(self._run_on_ui)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self._on_tick)
@@ -114,13 +118,12 @@ class OverlayManager:
     def set_opacity(self, value: float):
         print("Setting opacity to", value)
         self.config["opacity"] = value
-        for overlay in self.overlays:
-            overlay.setWindowOpacity(value)
-        # def apply():
-        #     for overlay in self.overlays:
-        #         overlay.setWindowOpacity(value)
 
-        # self.run_on_ui_thread(apply)
+        def apply():
+            for overlay in self.overlays:
+                overlay.setWindowOpacity(value)
+
+        self.run_on_ui_thread(apply)
 
     # -------- Is Interactive --------
     def set_interactive(self, is_iteractive: bool):
@@ -248,5 +251,9 @@ class OverlayManager:
     # Helper to run on UI thread for live config changes
     # ======================
 
+    @Slot(object)
+    def _run_on_ui(self, fn):
+        fn()
+
     def run_on_ui_thread(self, fn):
-        QTimer.singleShot(0, fn)
+        self.run_on_ui.emit(fn)
